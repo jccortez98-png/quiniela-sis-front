@@ -15,6 +15,9 @@ interface UserProfile {
   paymentStatus: "active" | "pending"
   totalPoints: number
   globalRank: number
+  favoriteTeams?: any[]
+  gender?: string
+  age?: number
 }
 
 interface UserProfileModalProps {
@@ -155,6 +158,27 @@ export function UserProfileModal({ isOpen, onClose, user, onSave }: UserProfileM
                   </div>
                 </div>
 
+                {/* Favorite Teams (read-only) */}
+                {user.favoriteTeams && user.favoriteTeams.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground flex items-center gap-1.5">
+                      <Trophy className="w-4 h-4 text-neon-orange" />
+                      Selecciones Favoritas (No modificables)
+                    </Label>
+                    <div className="flex gap-2">
+                      {user.favoriteTeams.map((team: any, index: number) => (
+                        <div
+                          key={team._id || index}
+                          className="flex-1 glass-card rounded-xl p-3 flex items-center justify-center gap-2 border border-white/5 bg-input/20"
+                        >
+                          <span className="text-2xl">{team.flag}</span>
+                          <span className="font-semibold text-foreground text-sm truncate">{team.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Payment Status */}
                 <div className="space-y-2">
                   <Label className="text-sm text-muted-foreground flex items-center gap-2">
@@ -203,6 +227,32 @@ export function UserProfileModal({ isOpen, onClose, user, onSave }: UserProfileM
                   </Label>
                   <div className="glass-card rounded-xl p-3 text-sm text-muted-foreground">
                     {user.email}
+                  </div>
+                </div>
+
+                {/* Sexo y Edad (read-only) */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">
+                      Sexo
+                    </Label>
+                    <div className="glass-card rounded-xl p-3 text-sm text-muted-foreground bg-input/20">
+                      {user.gender === "male"
+                        ? "Masculino"
+                        : user.gender === "female"
+                        ? "Femenino"
+                        : user.gender === "other"
+                        ? "Otro"
+                        : "No especificado"}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">
+                      Edad
+                    </Label>
+                    <div className="glass-card rounded-xl p-3 text-sm text-muted-foreground bg-input/20">
+                      {user.age ? `${user.age} años` : "No especificada"}
+                    </div>
                   </div>
                 </div>
 

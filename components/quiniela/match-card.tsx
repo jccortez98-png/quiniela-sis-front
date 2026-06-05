@@ -49,30 +49,54 @@ export function MatchCard({
   onPredictionChange, 
   onJackpotRequest 
 }: MatchCardProps) {
-  const [scoreA, setScoreA] = useState(match.userPrediction?.scoreA ?? 0)
-  const [scoreB, setScoreB] = useState(match.userPrediction?.scoreB ?? 0)
+  const [scoreA, setScoreA] = useState<string>(
+    match.userPrediction?.scoreA !== undefined ? String(match.userPrediction.scoreA) : "0"
+  )
+  const [scoreB, setScoreB] = useState<string>(
+    match.userPrediction?.scoreB !== undefined ? String(match.userPrediction.scoreB) : "0"
+  )
   const [isRequesting, setIsRequesting] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
   // Sync state when props change
   useEffect(() => {
-    setScoreA(match.userPrediction?.scoreA ?? 0)
-    setScoreB(match.userPrediction?.scoreB ?? 0)
+    setScoreA(match.userPrediction?.scoreA !== undefined ? String(match.userPrediction.scoreA) : "0")
+    setScoreB(match.userPrediction?.scoreB !== undefined ? String(match.userPrediction.scoreB) : "0")
   }, [match.userPrediction?.scoreA, match.userPrediction?.scoreB])
 
   const handleScoreChange = (team: "A" | "B", value: string) => {
-    const numValue = Math.max(0, Math.min(99, parseInt(value) || 0))
+    // Keep only digits
+    let cleaned = value.replace(/\D/g, "");
+
+    // Remove leading zeros if length > 1
+    if (cleaned.length > 1 && cleaned.startsWith("0")) {
+      cleaned = cleaned.replace(/^0+/, "");
+    }
+
+    // Cap at 99
+    if (cleaned !== "" && parseInt(cleaned) > 99) {
+      cleaned = "99";
+    }
+
     if (team === "A") {
-      setScoreA(numValue)
+      setScoreA(cleaned)
     } else {
-      setScoreB(numValue)
+      setScoreB(cleaned)
+    }
+  }
+
+  const handleBlur = (team: "A" | "B") => {
+    if (team === "A" && scoreA === "") {
+      setScoreA("0")
+    } else if (team === "B" && scoreB === "") {
+      setScoreB("0")
     }
   }
 
   const handleSavePrediction = async () => {
     setIsSaving(true)
     try {
-      await onPredictionChange?.(match.id, scoreA, scoreB)
+      await onPredictionChange?.(match.id, Number(scoreA), Number(scoreB))
     } catch (err) {
       console.error('Error guardando predicción:', err)
     } finally {
@@ -104,8 +128,8 @@ export function MatchCard({
   const isJackpotLocked = mode === "jackpot" && jackpotStatus !== "approved"
   const isLocked = mode === "general" ? isGeneralLocked : isJackpotLocked
 
-  const initialA = match.userPrediction?.scoreA ?? 0
-  const initialB = match.userPrediction?.scoreB ?? 0
+  const initialA = match.userPrediction?.scoreA !== undefined ? String(match.userPrediction.scoreA) : "0"
+  const initialB = match.userPrediction?.scoreB !== undefined ? String(match.userPrediction.scoreB) : "0"
   const hasChanges = (scoreA !== initialA || scoreB !== initialB) || !match.userPrediction
 
   const renderScoreInputs = () => {
@@ -144,21 +168,25 @@ export function MatchCard({
     return (
       <div className="flex items-center gap-2">
         <input
-          type="number"
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
           value={scoreA}
           onChange={(e) => handleScoreChange("A", e.target.value)}
+          onFocus={(e) => e.target.select()}
+          onBlur={() => handleBlur("A")}
           className="w-12 h-12 md:w-14 md:h-14 text-center text-xl font-bold rounded-xl bg-input border border-border focus:border-neon-purple focus:ring-2 focus:ring-neon-purple/30 outline-none transition-all text-foreground"
-          min={0}
-          max={99}
         />
         <span className="text-muted-foreground text-xl font-bold">-</span>
         <input
-          type="number"
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
           value={scoreB}
           onChange={(e) => handleScoreChange("B", e.target.value)}
+          onFocus={(e) => e.target.select()}
+          onBlur={() => handleBlur("B")}
           className="w-12 h-12 md:w-14 md:h-14 text-center text-xl font-bold rounded-xl bg-input border border-border focus:border-neon-purple focus:ring-2 focus:ring-neon-purple/30 outline-none transition-all text-foreground"
-          min={0}
-          max={99}
         />
       </div>
     )

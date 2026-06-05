@@ -85,7 +85,7 @@ export function MatchFeed({
       time: timeStr,
       status: cardStatus,
       pot: m.jackpotPot,
-      cuota: 10, // Default Q10 cuota
+      cuota: m.jackpotFee || 10,
       pointsEarned: pred?.pointsEarned,
       jackpotStatus,
       userPrediction: pred ? {

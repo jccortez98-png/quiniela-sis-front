@@ -148,6 +148,9 @@ export default function QuinielaDashboard() {
     globalRank: getGlobalRank(),
     totalPoints: user.totalPoints,
     paymentStatus: user.isEnrolledGeneral ? ("active" as const) : ("pending" as const),
+    favoriteTeams: user.favoriteTeams,
+    gender: user.gender,
+    age: user.age,
   }
 
   return (

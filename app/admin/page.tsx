@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/use-auth"
 import { matchesApi, jackpotRequestsApi, authApi } from "@/lib/api"
 import { 
   Trophy, Shield, Users, CreditCard, 
-  Search, CheckCircle, Clock, X,
+  Search, CheckCircle, Clock, X, AlertCircle,
   ChevronDown, Coins, Loader2, LogOut, ArrowLeft, RefreshCw, Calendar, Sparkles
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -46,6 +46,66 @@ export default function AdminDashboard() {
   // Track loading status for specific sync buttons
   const [isSyncingCalendar, setIsSyncingCalendar] = useState(false)
   const [syncingMatchId, setSyncingMatchId] = useState<string | null>(null)
+
+  // Jackpot Winners and Rollover State
+  const [winnersList, setWinnersList] = useState<Record<string, any[]>>({})
+
+  const fetchWinners = async (matchId: string) => {
+    try {
+      const res = await matchesApi.getJackpotWinners(matchId)
+      setWinnersList(prev => ({ ...prev, [matchId]: res }))
+    } catch (err: any) {
+      console.error("Error al obtener ganadores del jackpot:", err)
+    }
+  }
+
+  useEffect(() => {
+    matches.forEach(m => {
+      if (m.status === 'finished' && m.jackpotStatus === 'open' && !winnersList[m._id]) {
+        fetchWinners(m._id)
+      }
+    })
+  }, [matches])
+
+  const handleSaveJackpotFee = async (matchId: string, fee: number) => {
+    try {
+      await matchesApi.updateJackpotFee(matchId, fee)
+      alert("Cuota de jackpot actualizada correctamente.")
+      // Refresh matches
+      const matchesRes = await matchesApi.getAll()
+      setMatches(matchesRes)
+    } catch (err: any) {
+      alert(err.message || "Error al actualizar la cuota.")
+    }
+  }
+
+  const handlePayoutJackpot = async (matchId: string) => {
+    try {
+      await jackpotRequestsApi.payout(matchId)
+      alert("Jackpot marcado como pagado exitosamente.")
+      // Refresh matches
+      const matchesRes = await matchesApi.getAll()
+      setMatches(matchesRes)
+    } catch (err: any) {
+      alert(err.message || "Error al pagar el jackpot.")
+    }
+  }
+
+  const handleRolloverJackpot = async (fromMatchId: string, toMatchId: string) => {
+    try {
+      const res = await jackpotRequestsApi.rollover(fromMatchId, toMatchId)
+      alert(`Traslado de pozo exitoso. Pozo acumulado: Q${res.rolledOverAmount}. Usuarios transferidos: ${res.usersTransferred}`)
+      // Refresh matches and jackpot requests
+      const [matchesRes, requestsRes] = await Promise.all([
+        matchesApi.getAll(),
+        jackpotRequestsApi.getAll()
+      ])
+      setMatches(matchesRes)
+      setJackpotRequests(requestsRes)
+    } catch (err: any) {
+      alert(err.message || "Error al realizar el traslado del pozo.")
+    }
+  }
 
   // Fetch admin dashboard data
   const fetchAdminData = async () => {
@@ -522,7 +582,7 @@ export default function AdminDashboard() {
                                 : "bg-yellow-500/20 text-yellow-500 border-yellow-500/30"
                             }
                           >
-                            Q10
+                            Q{match?.jackpotFee || 10}
                           </Badge>
                         </div>
 
@@ -709,6 +769,117 @@ export default function AdminDashboard() {
                             )}
                           </Button>
                         </div>
+
+                        {/* Configurar cuota de Jackpot (solo partidos próximos) */}
+                        {match.status !== "finished" && (
+                          <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/5">
+                            <span className="text-xs text-muted-foreground">Cuota Jackpot:</span>
+                            <div className="flex items-center gap-1.5">
+                              <input
+                                type="number"
+                                defaultValue={match.jackpotFee || 10}
+                                id={`fee-input-${match._id}`}
+                                className="w-14 h-8 text-center text-xs font-bold bg-input border border-border rounded-lg text-foreground focus:border-neon-purple focus:ring-1 focus:ring-neon-purple/30 outline-none"
+                              />
+                              <Button
+                                onClick={async () => {
+                                  const input = document.getElementById(`fee-input-${match._id}`) as HTMLInputElement;
+                                  const feeVal = Number(input?.value);
+                                  if (feeVal > 0) {
+                                    await handleSaveJackpotFee(match._id, feeVal);
+                                  }
+                                }}
+                                size="sm"
+                                className="h-8 px-2.5 bg-neon-purple hover:bg-neon-purple/90 text-white text-[11px] font-bold rounded-lg transition-all"
+                              >
+                                Guardar
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Procesamiento de pozo (partidos finalizados) */}
+                        {match.status === "finished" && (
+                          <div className="mt-2 pt-2 border-t border-white/5 space-y-2">
+                            {match.jackpotStatus === "paid_out" && (
+                              <div className="flex items-center justify-between text-xs font-medium text-neon-lime bg-neon-lime/5 p-2 rounded-lg">
+                                <span>✓ Jackpot Finalizado y Pagado</span>
+                                <span className="font-bold">Pozo: Q{match.jackpotPot || 0}</span>
+                              </div>
+                            )}
+
+                            {match.jackpotStatus === "rolled_over" && (
+                              <div className="flex items-center justify-between text-xs font-medium text-yellow-500 bg-yellow-500/5 p-2 rounded-lg">
+                                <span>➔ Jackpot Trasladado (Rollover)</span>
+                              </div>
+                            )}
+
+                            {match.jackpotStatus === "open" && (
+                              <>
+                                {winnersList[match._id] && winnersList[match._id].length > 0 ? (
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between text-xs">
+                                      <span className="text-neon-orange font-bold">🏆 Ganadores del Pozo (Q{match.jackpotPot}):</span>
+                                      <span className="font-semibold text-muted-foreground">{winnersList[match._id].length} ganador(es)</span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1">
+                                      {winnersList[match._id].map((w: any) => (
+                                        <span key={w._id} className="bg-neon-orange/15 text-neon-orange text-[10px] px-2 py-0.5 rounded border border-neon-orange/20 font-bold">
+                                          @{w.nickname}
+                                        </span>
+                                      ))}
+                                    </div>
+                                    <Button
+                                      onClick={() => handlePayoutJackpot(match._id)}
+                                      size="sm"
+                                      className="w-full h-8 bg-neon-lime hover:bg-neon-lime/90 text-background font-bold text-xs rounded-lg mt-1"
+                                    >
+                                      Marcar como Pagado
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="space-y-2">
+                                    <div className="text-[11px] text-yellow-500 font-semibold bg-yellow-500/10 p-2 rounded-lg flex items-center gap-1.5">
+                                      <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                                      <span>Nadie acertó el marcador. Trasladar pozo (Q{match.jackpotPot}):</span>
+                                    </div>
+                                    <div className="flex gap-1.5">
+                                      <select
+                                        id={`rollover-target-${match._id}`}
+                                        className="flex-1 h-8 bg-input border border-border text-foreground text-xs rounded-lg px-2 outline-none"
+                                      >
+                                        <option value="">-- Seleccionar Destino --</option>
+                                        {matches
+                                          .filter(m => m.status === 'pending' && m._id !== match._id)
+                                          .map(m => (
+                                            <option key={m._id} value={m._id}>
+                                              {m.homeTeam.flag} {m.homeTeam.name} vs {m.awayTeam.name} {m.awayTeam.flag}
+                                            </option>
+                                          ))
+                                        }
+                                      </select>
+                                      <Button
+                                        onClick={async () => {
+                                          const select = document.getElementById(`rollover-target-${match._id}`) as HTMLSelectElement;
+                                          const targetId = select?.value;
+                                          if (targetId) {
+                                            await handleRolloverJackpot(match._id, targetId);
+                                          } else {
+                                            alert("Por favor selecciona un partido destino.");
+                                          }
+                                        }}
+                                        size="sm"
+                                        className="h-8 bg-neon-orange hover:bg-neon-orange/90 text-white font-bold text-xs rounded-lg px-3"
+                                      >
+                                        Trasladar
+                                      </Button>
+                                    </div>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )
                   })

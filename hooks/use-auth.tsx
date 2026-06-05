@@ -13,6 +13,9 @@ interface User {
   role: 'user' | 'admin';
   isEnrolledGeneral: boolean;
   totalPoints: number;
+  favoriteTeams?: any[];
+  gender?: string;
+  age?: number;
 }
 
 interface AuthContextType {
@@ -20,7 +23,16 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (userData: { email: string; password?: string; realName: string; nickname: string; avatarUrl?: string }) => Promise<void>;
+  register: (userData: { 
+    email: string; 
+    password?: string; 
+    realName: string; 
+    nickname: string; 
+    avatarUrl?: string; 
+    favoriteTeams?: string[];
+    gender?: string;
+    age?: number;
+  }) => Promise<void>;
   logout: () => void;
   updateProfileState: (updatedUser: Partial<User>) => void;
   refreshUser: () => Promise<void>;
@@ -51,6 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             role: userData.role,
             isEnrolledGeneral: userData.isEnrolledGeneral,
             totalPoints: userData.totalPoints || 0,
+            favoriteTeams: userData.favoriteTeams,
           });
         } catch (err) {
           console.error('Failed to load user with token:', err);
@@ -90,6 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           role: userData.role,
           isEnrolledGeneral: userData.isEnrolledGeneral,
           totalPoints: userData.totalPoints || 0,
+          favoriteTeams: userData.favoriteTeams,
         });
 
         router.push('/');
@@ -122,6 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           role: u.role,
           isEnrolledGeneral: u.isEnrolledGeneral,
           totalPoints: u.totalPoints || 0,
+          favoriteTeams: u.favoriteTeams,
         });
 
         router.push('/');
@@ -164,6 +179,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           role: userData.role,
           isEnrolledGeneral: userData.isEnrolledGeneral,
           totalPoints: userData.totalPoints || 0,
+          favoriteTeams: userData.favoriteTeams,
         });
       } catch (err) {
         console.error('Failed to refresh user:', err);

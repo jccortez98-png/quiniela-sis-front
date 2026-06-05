@@ -80,6 +80,8 @@ export const matchesApi = {
   delete: (id: string) => api.delete(`/matches/${id}`),
   syncCalendar: () => api.post('/matches/sync-calendar', {}),
   syncMatchScore: (id: string) => api.post(`/matches/${id}/sync-score`, {}),
+  updateJackpotFee: (id: string, fee: number) => api.patch(`/matches/${id}/jackpot-fee`, { fee }),
+  getJackpotWinners: (id: string) => api.get(`/matches/${id}/jackpot-winners`),
 };
 
 // Predictions service API
@@ -97,4 +99,11 @@ export const jackpotRequestsApi = {
   getAll: () => api.get('/jackpot-requests'),
   approve: (id: string) => api.patch(`/jackpot-requests/${id}/approve`, {}),
   reject: (id: string) => api.patch(`/jackpot-requests/${id}/reject`, {}),
+  rollover: (fromMatchId: string, toMatchId: string) => api.post('/jackpot-requests/rollover', { fromMatchId, toMatchId }),
+  payout: (matchId: string) => api.post(`/jackpot-requests/${matchId}/payout`, {}),
+};
+
+// Teams service API
+export const teamsApi = {
+  getAll: () => api.get('/teams'),
 };

@@ -8,10 +8,11 @@ interface UserHeaderProps {
   nickname: string
   globalRank: number
   totalPoints: number
+  favoriteTeams?: any[]
   onProfileClick?: () => void
 }
 
-export function UserHeader({ avatar, nickname, globalRank, totalPoints, onProfileClick }: UserHeaderProps) {
+export function UserHeader({ avatar, nickname, globalRank, totalPoints, favoriteTeams, onProfileClick }: UserHeaderProps) {
   return (
     <motion.header
       initial={{ opacity: 0, y: -20 }}
@@ -66,6 +67,23 @@ export function UserHeader({ avatar, nickname, globalRank, totalPoints, onProfil
             >
               {nickname}
             </motion.h2>
+            {/* Favorite Teams */}
+            {favoriteTeams && favoriteTeams.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                className="flex items-center gap-1.5 mt-1.5 text-xs text-muted-foreground"
+              >
+                <span>Favoritos:</span>
+                {favoriteTeams.map((team: any, index: number) => (
+                  <span key={team._id || index} className="inline-flex items-center gap-0.5 bg-input px-1.5 py-0.5 rounded border border-border text-foreground font-medium">
+                    <span>{team.flag}</span>
+                    <span className="hidden sm:inline">{team.name}</span>
+                  </span>
+                ))}
+              </motion.div>
+            )}
           </div>
         </div>
 
