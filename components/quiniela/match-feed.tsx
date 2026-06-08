@@ -51,18 +51,18 @@ export function MatchFeed({
       }
     }
 
-    // Format date and time for Guatemala context (UTC-6)
+    // Format date and time in UTC to match DB hours exactly
     const matchDate = new Date(m.date);
     const dateStr = matchDate.toLocaleDateString("es-GT", { 
       day: "numeric", 
       month: "short", 
-      timeZone: "America/Guatemala" 
+      timeZone: "UTC" 
     });
     const timeStr = matchDate.toLocaleTimeString("es-GT", { 
       hour: "2-digit", 
       minute: "2-digit", 
       hour12: false, 
-      timeZone: "America/Guatemala" 
+      timeZone: "UTC" 
     });
 
     let cardStatus: "upcoming" | "live" | "finished" = "upcoming";
