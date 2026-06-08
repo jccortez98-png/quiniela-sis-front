@@ -69,6 +69,7 @@ export const authApi = {
   updateProfile: (body: any) => api.patch('/users/profile', body),
   getLeaderboard: () => api.get('/users/leaderboard'),
   toggleEnrollment: (userId: string, isEnrolled: boolean) => api.patch(`/users/${userId}/general-enrollment`, { isEnrolled }),
+  resetPassword: (userId: string, body: { password: string }) => api.patch(`/users/${userId}/reset-password`, body),
 };
 
 // Matches service API

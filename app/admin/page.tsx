@@ -50,6 +50,13 @@ export default function AdminDashboard() {
   // Jackpot Winners and Rollover State
   const [winnersList, setWinnersList] = useState<Record<string, any[]>>({})
 
+  // Reset Password State
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false)
+  const [selectedUserForReset, setSelectedUserForReset] = useState<any | null>(null)
+  const [newPasswordInput, setNewPasswordInput] = useState("")
+  const [isSavingReset, setIsSavingReset] = useState(false)
+  const [resetSuccessPassword, setResetSuccessPassword] = useState<string | null>(null)
+
   const fetchWinners = async (matchId: string) => {
     try {
       const res = await matchesApi.getJackpotWinners(matchId)
@@ -149,6 +156,35 @@ export default function AdminDashboard() {
     } catch (err: any) {
       alert(err.message || "Error al cambiar estado de inscripción")
     }
+  }
+
+  const handleResetPassword = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    if (!selectedUserForReset) return
+    if (!newPasswordInput || newPasswordInput.length < 6) {
+      alert("La contraseña debe tener al menos 6 caracteres")
+      return
+    }
+
+    setIsSavingReset(true)
+    try {
+      await authApi.resetPassword(selectedUserForReset._id, { password: newPasswordInput })
+      setResetSuccessPassword(newPasswordInput)
+    } catch (err: any) {
+      alert(err.message || "Error al restablecer la contraseña")
+    } finally {
+      setIsSavingReset(false)
+    }
+  }
+
+  const handleGenerateRandomPassword = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    let rand = ""
+    for (let i = 0; i < 8; i++) {
+      rand += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    const generated = `QN-${rand}`
+    setNewPasswordInput(generated)
   }
 
   // Approve jackpot request via API
@@ -437,12 +473,13 @@ export default function AdminDashboard() {
                       <TableHead className="text-muted-foreground">Nombre Real</TableHead>
                       <TableHead className="text-muted-foreground text-center">Estado</TableHead>
                       <TableHead className="text-muted-foreground text-center">Inscribir</TableHead>
+                      <TableHead className="text-muted-foreground text-center">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredUsers.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
+                        <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
                           No se encontraron usuarios
                         </TableCell>
                       </TableRow>
@@ -478,6 +515,21 @@ export default function AdminDashboard() {
                               onCheckedChange={(checked) => handleTogglePayment(u._id, checked)}
                               className="data-[state=checked]:bg-neon-lime"
                             />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedUserForReset(u)
+                                setNewPasswordInput("")
+                                setResetSuccessPassword(null)
+                                setIsResetModalOpen(true)
+                              }}
+                              className="text-neon-purple hover:text-white hover:bg-neon-purple/20 transition-all text-xs rounded-lg border border-neon-purple/20 h-8 px-3 font-semibold"
+                            >
+                              Restablecer
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))
@@ -885,6 +937,151 @@ export default function AdminDashboard() {
                   })
                 )}
               </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Reset Password Modal */}
+        <AnimatePresence>
+          {isResetModalOpen && selectedUserForReset && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
+            >
+              <motion.div
+                initial={{ scale: 0.95, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.95, y: 20 }}
+                className="w-full max-w-md glass-card rounded-2xl p-6 border border-border bg-background/80 shadow-2xl relative"
+              >
+                {/* Close Button */}
+                <button
+                  onClick={() => setIsResetModalOpen(false)}
+                  className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                {!resetSuccessPassword ? (
+                  <form onSubmit={handleResetPassword} className="space-y-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <Shield className="w-6 h-6 text-neon-purple" />
+                      <h3 className="text-lg font-bold text-foreground">Restablecer Contraseña</h3>
+                    </div>
+
+                    <p className="text-sm text-muted-foreground">
+                      Estás a punto de restablecer la contraseña para el usuario{" "}
+                      <span className="font-semibold text-foreground">
+                        @{selectedUserForReset.nickname}
+                      </span>{" "}
+                      ({selectedUserForReset.realName}).
+                    </p>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+                        Nueva Contraseña (mín. 6 caracteres)
+                      </label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="text"
+                          placeholder="Ingresa la nueva contraseña"
+                          value={newPasswordInput}
+                          onChange={(e) => setNewPasswordInput(e.target.value)}
+                          className="bg-input border-border rounded-xl h-11 text-foreground flex-1"
+                          required
+                          minLength={6}
+                        />
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={handleGenerateRandomPassword}
+                          className="h-11 px-3 bg-neon-purple/20 hover:bg-neon-purple/35 text-neon-purple border border-neon-purple/30 rounded-xl flex items-center gap-1 font-semibold"
+                        >
+                          <Sparkles className="w-4 h-4" />
+                          Generar
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => setIsResetModalOpen(false)}
+                        className="rounded-xl border border-border h-11 text-foreground"
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        type="submit"
+                        disabled={isSavingReset || newPasswordInput.length < 6}
+                        className="bg-neon-purple hover:bg-neon-purple/90 text-white font-bold rounded-xl h-11 px-6 shadow-[0_0_15px_rgba(168,85,247,0.4)] flex items-center gap-2"
+                      >
+                        {isSavingReset ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Guardando...
+                          </>
+                        ) : (
+                          "Restablecer"
+                        )}
+                      </Button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <CheckCircle className="w-6 h-6 text-neon-lime" />
+                      <h3 className="text-lg font-bold text-foreground">¡Contraseña Restablecida!</h3>
+                    </div>
+
+                    <p className="text-sm text-muted-foreground">
+                      La contraseña de{" "}
+                      <span className="font-semibold text-foreground">
+                        @{selectedUserForReset.nickname}
+                      </span>{" "}
+                      se ha actualizado correctamente.
+                    </p>
+
+                    <div className="bg-input border border-border rounded-xl p-4 flex flex-col gap-2 relative group overflow-hidden">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                        Contraseña Establecida
+                      </label>
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-lg font-bold text-neon-lime tracking-wide">
+                          {resetSuccessPassword}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText(resetSuccessPassword)
+                            alert("Contraseña copiada al portapapeles")
+                          }}
+                          className="h-8 text-xs font-bold text-neon-purple hover:bg-neon-purple/20 rounded-lg flex items-center gap-1 border border-neon-purple/20 px-2"
+                        >
+                          Copiar
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="bg-neon-purple/10 border border-neon-purple/20 rounded-xl p-3 text-xs text-neon-purple">
+                      ⚠️ Copia esta contraseña y envíasela de forma segura al usuario. No volverá a mostrarse en claro una vez que cierres esta ventana.
+                    </div>
+
+                    <div className="flex justify-end pt-2">
+                      <Button
+                        onClick={() => setIsResetModalOpen(false)}
+                        className="bg-neon-purple hover:bg-neon-purple/90 text-white font-bold rounded-xl h-11 px-8 shadow-[0_0_15px_rgba(168,85,247,0.4)]"
+                      >
+                        Entendido
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
