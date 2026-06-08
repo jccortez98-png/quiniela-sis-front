@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import Link from "next/link"
 import { useAuth } from "@/hooks/use-auth"
 import { matchesApi, predictionsApi, jackpotRequestsApi, authApi } from "@/lib/api"
 import { UserHeader } from "@/components/quiniela/user-header"
@@ -9,7 +10,7 @@ import { Podium } from "@/components/quiniela/podium"
 import { MatchFeed } from "@/components/quiniela/match-feed"
 import { Leaderboard } from "@/components/quiniela/leaderboard"
 import { UserProfileModal } from "@/components/quiniela/user-profile-modal"
-import { Trophy, LogOut, Loader2, Gamepad2, Users, Crown, Sparkles } from "lucide-react"
+import { Trophy, LogOut, Loader2, Gamepad2, Users, Crown, Sparkles, Shield } from "lucide-react"
 
 export default function QuinielaDashboard() {
   const { user, token, loading, logout, updateProfileState, refreshUser } = useAuth()
@@ -198,13 +199,25 @@ export default function QuinielaDashboard() {
             <Sparkles className="w-4 h-4 text-yellow-400 animate-bounce" />
           </div>
           
-          <button
-            onClick={logout}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/25 transition-all text-xs font-semibold"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Cerrar Sesión</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {user.role === "admin" && (
+              <Link
+                href="/admin"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-neon-purple/20 border border-neon-purple/30 text-neon-purple hover:bg-neon-purple/35 transition-all text-xs font-semibold"
+              >
+                <Shield className="w-3.5 h-3.5" />
+                <span>Panel Admin</span>
+              </Link>
+            )}
+
+            <button
+              onClick={logout}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/25 transition-all text-xs font-semibold"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Cerrar Sesión</span>
+            </button>
+          </div>
         </div>
 
         {/* User Stats Summary Header */}
