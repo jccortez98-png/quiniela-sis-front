@@ -101,7 +101,7 @@ export default function AdminDashboard() {
   const handleRolloverJackpot = async (fromMatchId: string, toMatchId: string) => {
     try {
       const res = await jackpotRequestsApi.rollover(fromMatchId, toMatchId)
-      alert(`Traslado de pozo exitoso. Pozo acumulado: Q${res.rolledOverAmount}. Usuarios transferidos: ${res.usersTransferred}`)
+      alert(`Traslado de pozo exitoso. Pozo acumulado: Q${res.rolledOverAmount}.`)
       // Refresh matches and jackpot requests
       const [matchesRes, requestsRes] = await Promise.all([
         matchesApi.getAll(),
