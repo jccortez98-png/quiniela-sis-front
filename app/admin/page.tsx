@@ -736,13 +736,13 @@ export default function AdminDashboard() {
                     const dateStr = matchDate.toLocaleDateString("es-GT", { 
                       day: "numeric", 
                       month: "short", 
-                      timeZone: "UTC" 
+                      timeZone: "America/Guatemala" 
                     })
                     const timeStr = matchDate.toLocaleTimeString("es-GT", { 
                       hour: "2-digit", 
                       minute: "2-digit", 
                       hour12: false, 
-                      timeZone: "UTC" 
+                      timeZone: "America/Guatemala" 
                     })
 
                     const isSyncingThis = syncingMatchId === match._id
