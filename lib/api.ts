@@ -90,6 +90,8 @@ export const predictionsApi = {
   createOrUpdate: (body: { matchId: string; type: 'general' | 'jackpot'; predictedScore: { home: number; away: number } }) => 
     api.post('/predictions', body),
   getMyPredictions: () => api.get('/predictions/me'),
+  getMatchPredictions: (matchId: string, type: 'general' | 'jackpot') => 
+    api.get(`/predictions/match/${matchId}?type=${type}`),
 };
 
 // Jackpot Requests API

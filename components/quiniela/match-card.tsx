@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Coins, Users, Clock, Check, Trophy, TrendingUp, Lock, Loader2, Save } from "lucide-react"
+import { Coins, Users, Clock, Check, Trophy, TrendingUp, Lock, Loader2, Save, X, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { predictionsApi } from "@/lib/api"
+import { Input } from "@/components/ui/input"
 
 interface Match {
   id: string
@@ -57,6 +59,26 @@ export function MatchCard({
   )
   const [isRequesting, setIsRequesting] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+
+  // Other Users' Predictions State
+  const [isPredictionsModalOpen, setIsPredictionsModalOpen] = useState(false)
+  const [otherPredictions, setOtherPredictions] = useState<any[]>([])
+  const [isLoadingPredictions, setIsLoadingPredictions] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+
+  const handleOpenPredictionsModal = async () => {
+    setSearchQuery("")
+    setIsPredictionsModalOpen(true)
+    setIsLoadingPredictions(true)
+    try {
+      const res = await predictionsApi.getMatchPredictions(match.id, mode)
+      setOtherPredictions(res)
+    } catch (err: any) {
+      console.error("Error al obtener predicciones de otros usuarios:", err)
+    } finally {
+      setIsLoadingPredictions(false)
+    }
+  }
 
   // Sync state when props change
   useEffect(() => {
@@ -382,28 +404,193 @@ export function MatchCard({
           </motion.div>
         )}
 
-        {match.status === "finished" && match.pointsEarned !== undefined && (
+        {match.status === "live" && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="pt-4 border-t border-border flex items-center justify-between"
+            className="pt-4 border-t border-border"
           >
-            <div className="flex items-center gap-2">
-              {match.pointsEarned === 3 ? (
-                <Trophy className="w-5 h-5 text-neon-orange" />
-              ) : match.pointsEarned > 0 ? (
-                <TrendingUp className="w-5 h-5 text-neon-lime" />
-              ) : (
-                <Check className="w-5 h-5 text-muted-foreground" />
-              )}
-              <span className="text-sm text-muted-foreground">
-                {match.pointsEarned === 3 ? "Resultado Exacto" : match.pointsEarned === 1 ? "Tendencia Correcta" : "Sin puntos"}
-              </span>
-            </div>
-            <span className={`text-lg font-bold ${match.pointsEarned > 0 ? 'text-neon-lime neon-text-lime' : 'text-muted-foreground'}`}>
-              +{match.pointsEarned} pts
-            </span>
+            <Button
+              onClick={handleOpenPredictionsModal}
+              variant="outline"
+              className="w-full h-10 border-neon-purple/50 hover:bg-neon-purple/10 hover:border-neon-purple text-foreground font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
+            >
+              <Users className="w-4 h-4 text-neon-purple animate-pulse" />
+              Ver Predicciones de Otros
+            </Button>
           </motion.div>
+        )}
+
+        {match.status === "finished" && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="pt-4 border-t border-border flex flex-col gap-3"
+          >
+            {match.pointsEarned !== undefined && (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {match.pointsEarned === 3 ? (
+                    <Trophy className="w-5 h-5 text-neon-orange" />
+                  ) : match.pointsEarned > 0 ? (
+                    <TrendingUp className="w-5 h-5 text-neon-lime" />
+                  ) : (
+                    <Check className="w-5 h-5 text-muted-foreground" />
+                  )}
+                  <span className="text-sm text-muted-foreground">
+                    {match.pointsEarned === 3 ? "Resultado Exacto" : match.pointsEarned === 1 ? "Tendencia Correcta" : "Sin puntos"}
+                  </span>
+                </div>
+                <span className={`text-lg font-bold ${match.pointsEarned > 0 ? 'text-neon-lime neon-text-lime' : 'text-muted-foreground'}`}>
+                  +{match.pointsEarned} pts
+                </span>
+              </div>
+            )}
+            <Button
+              onClick={handleOpenPredictionsModal}
+              variant="outline"
+              className="w-full h-10 border-neon-purple/50 hover:bg-neon-purple/10 hover:border-neon-purple text-foreground font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
+            >
+              <Users className="w-4 h-4 text-neon-purple" />
+              Ver Predicciones de Otros
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Predictions Modal */}
+      <AnimatePresence>
+        {isPredictionsModalOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsPredictionsModalOpen(false)}
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
+            />
+
+            {/* Modal Container */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            >
+              <div className="glass-card rounded-3xl w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col neon-glow-purple">
+                {/* Header */}
+                <div className="relative p-6 pb-4 border-b border-border">
+                  <button
+                    onClick={() => setIsPredictionsModalOpen(false)}
+                    className="absolute right-4 top-4 w-10 h-10 rounded-full bg-input flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                  
+                  <div className="flex items-center gap-3 mb-1">
+                    <Users className="w-6 h-6 text-neon-purple" />
+                    <h2 className="text-xl font-bold text-foreground">Predicciones</h2>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {match.teamA.flag} {match.teamA.name} vs {match.teamB.name} {match.teamB.flag}
+                  </p>
+                  <p className="text-xs text-neon-lime mt-1 font-semibold">
+                    Modo: {mode === "general" ? "Quiniela General" : "Jackpot"}
+                  </p>
+                </div>
+
+                {/* Content */}
+                <div className="p-6 flex-1 flex flex-col min-h-0">
+                  {isLoadingPredictions ? (
+                    <div className="flex flex-col items-center justify-center py-12 gap-3">
+                      <Loader2 className="w-8 h-8 text-neon-purple animate-spin" />
+                      <p className="text-sm text-muted-foreground">Cargando predicciones...</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Search Bar */}
+                      <div className="mb-4">
+                        <Input
+                          placeholder="Buscar por nickname..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="h-10 bg-input border-border focus:border-neon-purple focus:ring-2 focus:ring-neon-purple/30 rounded-xl"
+                        />
+                      </div>
+
+                      {(() => {
+                        const filtered = otherPredictions.filter((p: any) =>
+                          (p.userId?.nickname || "").toLowerCase().includes(searchQuery.toLowerCase())
+                        )
+                        if (filtered.length === 0) {
+                          return (
+                            <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
+                              <AlertCircle className="w-8 h-8 mb-2 text-muted-foreground/50" />
+                              <p className="text-sm">No se encontraron predicciones.</p>
+                            </div>
+                          )
+                        }
+                        return (
+                          <div className="flex-1 overflow-y-auto pr-1 space-y-2 max-h-[40vh]">
+                            {filtered.map((pred: any) => {
+                              const userNick = pred.userId?.nickname || "Anónimo"
+                              const avatar = pred.userId?.avatarUrl || `https://api.dicebear.com/7.x/adventurer/svg?seed=${userNick}`
+                              return (
+                                <div
+                                  key={pred._id}
+                                  className="glass-card rounded-xl p-3 flex items-center justify-between border border-white/5 bg-input/10 hover:bg-input/20 transition-colors"
+                                >
+                                  <div className="flex items-center gap-3 min-w-0">
+                                    <div className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-neon-purple/20 flex-shrink-0">
+                                      <img
+                                        src={avatar}
+                                        alt={userNick}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <p className="font-semibold text-sm text-foreground truncate">
+                                        @{userNick}
+                                      </p>
+                                      {pred.userId?.realName && (
+                                        <p className="text-xxs text-muted-foreground truncate">
+                                          {pred.userId.realName}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-1.5 px-3 py-1 bg-input rounded-lg border border-border">
+                                      <span className="font-bold text-foreground text-sm">
+                                        {pred.predictedScore?.home}
+                                      </span>
+                                      <span className="text-muted-foreground text-xs font-bold">-</span>
+                                      <span className="font-bold text-foreground text-sm">
+                                        {pred.predictedScore?.away}
+                                      </span>
+                                    </div>
+
+                                    {match.status === "finished" && (
+                                      <span className={`text-sm font-bold min-w-[50px] text-right ${pred.pointsEarned > 0 ? 'text-neon-lime neon-text-lime' : 'text-muted-foreground'}`}>
+                                        +{pred.pointsEarned || 0} pts
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )
+                      })()}
+                    </>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
 
