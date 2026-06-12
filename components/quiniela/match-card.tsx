@@ -576,9 +576,28 @@ export function MatchCard({
                                       </div>
 
                                       {match.status === "finished" && (
-                                        <span className={`text-sm font-bold min-w-[50px] text-right ${pred.pointsEarned > 0 ? 'text-neon-lime neon-text-lime' : 'text-muted-foreground'}`}>
-                                          +{pred.pointsEarned || 0} pts
-                                        </span>
+                                        <div className="min-w-[75px] flex justify-end">
+                                          {mode === "general" ? (
+                                            <span className={`text-sm font-bold ${pred.pointsEarned > 0 ? 'text-neon-lime neon-text-lime' : 'text-muted-foreground'}`}>
+                                              +{pred.pointsEarned || 0} pts
+                                            </span>
+                                          ) : (() => {
+                                            const isWinner = match.teamA.score !== undefined && match.teamB.score !== undefined &&
+                                              pred.predictedScore?.home === match.teamA.score &&
+                                              pred.predictedScore?.away === match.teamB.score;
+                                            return isWinner ? (
+                                              <div className="flex items-center gap-1 text-neon-lime font-bold text-xs bg-neon-lime/10 px-2 py-1 rounded-full border border-neon-lime/20">
+                                                <Trophy className="w-3.5 h-3.5 text-neon-orange animate-bounce" />
+                                                <span>Ganó</span>
+                                              </div>
+                                            ) : (
+                                              <div className="flex items-center gap-1 text-muted-foreground font-semibold text-xs bg-muted/20 px-2 py-1 rounded-full border border-border/30">
+                                                <X className="w-3 h-3 text-muted-foreground" />
+                                                <span>Perdió</span>
+                                              </div>
+                                            );
+                                          })()}
+                                        </div>
                                       )}
                                     </div>
                                   </div>
