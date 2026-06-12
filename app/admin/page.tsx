@@ -57,6 +57,14 @@ export default function AdminDashboard() {
   const [isSavingReset, setIsSavingReset] = useState(false)
   const [resetSuccessPassword, setResetSuccessPassword] = useState<string | null>(null)
 
+  // Manual Match Edit State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [selectedMatchForEdit, setSelectedMatchForEdit] = useState<any | null>(null)
+  const [manualHomeScore, setManualHomeScore] = useState("0")
+  const [manualAwayScore, setManualAwayScore] = useState("0")
+  const [manualStatus, setManualStatus] = useState<"pending" | "in_progress" | "finished">("pending")
+  const [isSavingManualMatch, setIsSavingManualMatch] = useState(false)
+
   const fetchWinners = async (matchId: string) => {
     try {
       const res = await matchesApi.getJackpotWinners(matchId)
@@ -185,6 +193,44 @@ export default function AdminDashboard() {
     }
     const generated = `QN-${rand}`
     setNewPasswordInput(generated)
+  }
+
+  const handleSaveManualMatch = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedMatchForEdit) return
+
+    setIsSavingManualMatch(true)
+    try {
+      const payload: any = {
+        status: manualStatus,
+      }
+
+      if (manualStatus === "finished" || manualStatus === "in_progress") {
+        payload.actualScore = {
+          home: Number(manualHomeScore),
+          away: Number(manualAwayScore),
+        }
+      } else {
+        payload.actualScore = null
+      }
+
+      await matchesApi.update(selectedMatchForEdit._id, payload)
+      alert("Partido actualizado correctamente.")
+      setIsEditModalOpen(false)
+
+      // Refresh matches and winners list
+      const matchesRes = await matchesApi.getAll()
+      setMatches(matchesRes)
+      
+      // If the match finished, refresh its jackpot winners too
+      if (manualStatus === "finished") {
+        fetchWinners(selectedMatchForEdit._id)
+      }
+    } catch (err: any) {
+      alert(err.message || "Error al actualizar el partido.")
+    } finally {
+      setIsSavingManualMatch(false)
+    }
   }
 
   // Approve jackpot request via API
@@ -802,24 +848,36 @@ export default function AdminDashboard() {
                             {match.status === "finished" ? "Finalizado" : match.status === "in_progress" ? "En curso" : "Próximo"}
                           </Badge>
 
-                          <Button
-                            onClick={() => handleSyncMatchScore(match._id)}
-                            disabled={isSyncingThis || !match.externalId}
-                            size="sm"
-                            className="bg-neon-lime hover:bg-neon-lime/90 text-background font-bold text-xs rounded-lg py-1.5 h-8"
-                          >
-                            {isSyncingThis ? (
-                              <>
-                                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                                Buscando...
-                              </>
-                            ) : (
-                              <>
-                                <RefreshCw className="w-3 h-3 mr-1" />
-                                Sincronizar Marcador
-                              </>
-                            )}
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={() => handleSyncMatchScore(match._id)}
+                              disabled={isSyncingThis || !match.externalId}
+                              size="sm"
+                              className="bg-neon-lime hover:bg-neon-lime/90 text-background font-bold text-[11px] rounded-lg py-1.5 h-8 px-2.5 flex-1 flex items-center justify-center gap-1"
+                            >
+                              {isSyncingThis ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <RefreshCw className="w-3.5 h-3.5" />
+                              )}
+                              <span>Sync</span>
+                            </Button>
+
+                            <Button
+                              onClick={() => {
+                                setSelectedMatchForEdit(match)
+                                setManualHomeScore(match.actualScore?.home !== undefined ? String(match.actualScore.home) : "0")
+                                setManualAwayScore(match.actualScore?.away !== undefined ? String(match.actualScore.away) : "0")
+                                setManualStatus(match.status)
+                                setIsEditModalOpen(true)
+                              }}
+                              size="sm"
+                              className="bg-neon-purple hover:bg-neon-purple/90 text-white font-bold text-[11px] rounded-lg py-1.5 h-8 px-2.5 flex-1 flex items-center justify-center gap-1 border border-neon-purple/30"
+                            >
+                              <Shield className="w-3.5 h-3.5" />
+                              <span>Editar</span>
+                            </Button>
+                          </div>
                         </div>
 
                         {/* Configurar cuota de Jackpot (solo partidos próximos) */}
@@ -1081,6 +1139,140 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                 )}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Manual Match Edit Modal */}
+        <AnimatePresence>
+          {isEditModalOpen && selectedMatchForEdit && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
+            >
+              <motion.div
+                initial={{ scale: 0.95, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.95, y: 20 }}
+                className="w-full max-w-md glass-card rounded-2xl p-6 border border-border bg-background/80 shadow-2xl relative text-foreground"
+              >
+                {/* Close Button */}
+                <button
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                <form onSubmit={handleSaveManualMatch} className="space-y-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Shield className="w-6 h-6 text-neon-purple" />
+                    <h3 className="text-lg font-bold text-foreground">Editar Partido Manual</h3>
+                  </div>
+
+                  {/* Teams Display */}
+                  <div className="bg-input/50 border border-border/50 rounded-xl p-3 flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">{selectedMatchForEdit.homeTeam.flag}</span>
+                      <span className="font-semibold">{selectedMatchForEdit.homeTeam.name}</span>
+                    </div>
+                    <span className="text-muted-foreground font-bold">vs</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">{selectedMatchForEdit.awayTeam.name}</span>
+                      <span className="text-2xl">{selectedMatchForEdit.awayTeam.flag}</span>
+                    </div>
+                  </div>
+
+                  {/* Status Selection */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+                      Estado del Partido
+                    </label>
+                    <select
+                      value={manualStatus}
+                      onChange={(e) => setManualStatus(e.target.value as any)}
+                      className="w-full h-11 bg-input border border-border text-foreground text-sm rounded-xl px-3 outline-none focus:border-neon-purple focus:ring-1 focus:ring-neon-purple/30"
+                    >
+                      <option value="pending">Próximo (Pendiente)</option>
+                      <option value="in_progress">En Curso (En Vivo)</option>
+                      <option value="finished">Finalizado</option>
+                    </select>
+                  </div>
+
+                  {/* Score Inputs (only visible for in_progress or finished) */}
+                  {(manualStatus === "finished" || manualStatus === "in_progress") && (
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+                        Marcador Actual
+                      </label>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider block">
+                            Goles {selectedMatchForEdit.homeTeam.name}
+                          </span>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={manualHomeScore}
+                            onChange={(e) => setManualHomeScore(e.target.value)}
+                            className="bg-input border-border rounded-xl h-11 text-center font-bold text-lg text-foreground"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider block">
+                            Goles {selectedMatchForEdit.awayTeam.name}
+                          </span>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={manualAwayScore}
+                            onChange={(e) => setManualAwayScore(e.target.value)}
+                            className="bg-input border-border rounded-xl h-11 text-center font-bold text-lg text-foreground"
+                            required
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {manualStatus === "finished" && (
+                    <div className="bg-neon-purple/10 border border-neon-purple/20 rounded-xl p-3 text-xs text-neon-purple flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                      <div>
+                        <strong>⚠️ Calificación Automática:</strong> Al marcar el partido como "Finalizado", el sistema procesará los puntos de las predicciones (Quiniela General) y determinará los ganadores del Jackpot con este marcador de forma irreversible.
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-3 pt-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => setIsEditModalOpen(false)}
+                      className="rounded-xl border border-border h-11 text-foreground"
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={isSavingManualMatch}
+                      className="bg-neon-purple hover:bg-neon-purple/90 text-white font-bold rounded-xl h-11 px-6 shadow-[0_0_15px_rgba(168,85,247,0.4)] flex items-center gap-2"
+                    >
+                      {isSavingManualMatch ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Guardando...
+                        </>
+                      ) : (
+                        "Guardar Cambios"
+                      )}
+                    </Button>
+                  </div>
+                </form>
               </motion.div>
             </motion.div>
           )}
