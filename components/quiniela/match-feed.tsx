@@ -35,6 +35,11 @@ export function MatchFeed({
     return activeTab === "upcoming" ? !isFinished : isFinished;
   });
 
+  // Sort results descending by date (most recent first)
+  if (activeTab === "results") {
+    filteredMatches.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }
+
   // Map backend matches to frontend structure
   const mappedMatches = filteredMatches.map((m) => {
     // Find prediction of active mode

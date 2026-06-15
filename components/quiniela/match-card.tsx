@@ -253,7 +253,23 @@ export function MatchCard({
         </div>
 
         {/* Score inputs / Display */}
-        {renderScoreInputs()}
+        <div className="flex flex-col items-center gap-1.5 min-w-[100px]">
+          {renderScoreInputs()}
+          {(match.status === "live" || match.status === "finished") && (
+            <div className="flex flex-col items-center mt-1">
+              <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
+                Mi Predicción
+              </span>
+              <span className={`text-sm font-black ${
+                mode === "general" 
+                  ? "text-neon-purple neon-text-purple" 
+                  : "text-neon-orange neon-text-orange"
+              }`}>
+                {match.userPrediction ? `${match.userPrediction.scoreA} - ${match.userPrediction.scoreB}` : "-"}
+              </span>
+            </div>
+          )}
+        </div>
 
         {/* Team B */}
         <div className="flex-1 flex items-center gap-3 justify-end">
