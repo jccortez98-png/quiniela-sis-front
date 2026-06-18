@@ -260,13 +260,19 @@ export function MatchCard({
               <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
                 Mi Predicción
               </span>
-              <span className={`text-sm font-black ${
-                mode === "general" 
-                  ? "text-neon-purple neon-text-purple" 
-                  : "text-neon-orange neon-text-orange"
-              }`}>
-                {match.userPrediction ? `${match.userPrediction.scoreA} - ${match.userPrediction.scoreB}` : "-"}
-              </span>
+              {match.userPrediction ? (
+                <span className={`text-sm font-black ${
+                  mode === "general" 
+                    ? "text-neon-purple neon-text-purple" 
+                    : "text-neon-orange neon-text-orange"
+                }`}>
+                  {match.userPrediction.scoreA} - {match.userPrediction.scoreB}
+                </span>
+              ) : (
+                <span className="text-xs font-semibold text-red-400">
+                  Sin Predicción
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -430,8 +436,16 @@ export function MatchCard({
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="pt-4 border-t border-border"
+            className="pt-4 border-t border-border flex flex-col gap-3"
           >
+            {!match.userPrediction && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20">
+                <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                <p className="text-xs text-red-400 font-medium">
+                  No ingresaste predicción para este partido.
+                </p>
+              </div>
+            )}
             <Button
               onClick={handleOpenPredictionsModal}
               variant="outline"
@@ -449,7 +463,7 @@ export function MatchCard({
             animate={{ opacity: 1, y: 0 }}
             className="pt-4 border-t border-border flex flex-col gap-3"
           >
-            {match.pointsEarned !== undefined && (
+            {match.pointsEarned !== undefined ? (
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {match.pointsEarned === 3 ? (
@@ -465,6 +479,18 @@ export function MatchCard({
                 </div>
                 <span className={`text-lg font-bold ${match.pointsEarned > 0 ? 'text-neon-lime neon-text-lime' : 'text-muted-foreground'}`}>
                   +{match.pointsEarned} pts
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                  <span className="text-sm text-red-400 font-semibold">
+                    No ingresaste predicción para este partido
+                  </span>
+                </div>
+                <span className="text-lg font-bold text-muted-foreground">
+                  +0 pts
                 </span>
               </div>
             )}
