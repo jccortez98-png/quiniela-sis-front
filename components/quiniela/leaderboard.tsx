@@ -10,6 +10,7 @@ interface Player {
   points: number
   trend: "up" | "down" | "same"
   isCurrentUser?: boolean
+  favoriteTeams?: any[]
 }
 
 interface LeaderboardProps {
@@ -94,6 +95,18 @@ export function Leaderboard({ players, currentUserNickname }: LeaderboardProps) 
                 <p className="text-xs text-muted-foreground">
                   {player.points.toLocaleString()} pts
                 </p>
+                {player.favoriteTeams && player.favoriteTeams.length > 0 && (
+                  <div className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground">
+                    <span>Equipos favoritos:</span>
+                    <span className="flex gap-1">
+                      {player.favoriteTeams.map((team: any, index: number) => (
+                        <span key={team._id || index} title={team.name} className="text-xs">
+                          {team.flag}
+                        </span>
+                      ))}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Trend */}

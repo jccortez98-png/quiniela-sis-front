@@ -116,6 +116,7 @@ export default function QuinielaDashboard() {
     nickname: u.nickname,
     points: u.totalPoints || 0,
     trend: "same" as const,
+    favoriteTeams: u.favoriteTeams || [],
   }))
 
   if (loading || (token && isLoadingData && matches.length === 0)) {
